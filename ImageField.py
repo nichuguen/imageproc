@@ -17,3 +17,7 @@ class ImageField:
 	@property
 	def maskImg(self):
 		return self._maskImg
+
+	@property
+	def name(self):
+		return self._name
