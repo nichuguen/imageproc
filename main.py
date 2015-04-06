@@ -5,9 +5,43 @@ from ImageField import ImageField
 
 HOUGH_OFFSET = 6000
 
+
+def isSameTheta(listClasses, rt, threshold, index):
+	mean = 0
+	for _rt in listClasses[-1]:
+		mean += _rt[index]
+	mean /= len(listClasses[-1])
+	return (mean - rt[index])**2 < threshold **2
+
+
+def sortIndex(listRhoTheta, threshold, index):
+	if len(listRhoTheta) > 0:
+		listClasses = [[listRhoTheta.pop()]]
+		for rt in listRhoTheta:
+			if isSameTheta(listClasses, rt, threshold, index):
+				listClasses[-1].append(rt)
+			else:
+				listClasses.append([rt])
+		return listClasses
+	else:
+		raise
+
+
+def computeMean(truc2):
+	t = 0
+	r = 0
+	for rt in truc2:
+		t += rt[1]
+		r += rt[0]
+	length = len(truc2)
+	if length > 0:
+		return (r / length, t/length)
+	return (0,0)
+
+
 def main():
-	#imageField = ImageField("6872195.0", r'data\denens062014_50\6872195.0.jpg', r'data\denens062014_50\6872195.0_mask.jpg', r'data\denens062014_50\6872195.0.txt')
-	imageField = ImageField("6870221.0", r'data\denens062014_50\6870221.0.jpg', r'data\denens062014_50\6870221.0_mask.jpg', r'data\denens062014_50\6870221.0.txt')
+	imageField = ImageField("6872195.0", r'data\denens062014_50\6872195.0.jpg', r'data\denens062014_50\6872195.0_mask.jpg', r'data\denens062014_50\6872195.0.txt')
+	# imageField = ImageField("6870221.0", r'data\denens062014_50\6870221.0.jpg', r'data\denens062014_50\6870221.0_mask.jpg', r'data\denens062014_50\6870221.0.txt')
 	img = imageField.realImg
 
 	grey = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
@@ -48,13 +82,31 @@ def main():
 		for rho,theta in line:
 			listRhoTheta.append((rho, theta))
 			(norm, x1, y1, x2, y2) = getPoints(rho, theta)
-			cv2.line(img,(x1,y1),(x2,y2),(0,0,255),2)
+			#cv2.line(img,(x1,y1),(x2,y2),(0,0,255),2)
 
 	listRhoTheta.sort(key= lambda x: x[0])
 
-	for x in listRhoTheta:
-		print(x[0])
-		print(x[1])
+	threshold = 0.5
+	sortedTheta = sortIndex(listRhoTheta, threshold, 1)
+	listMalentendu = []
+	for listTheta in sortedTheta:
+		listMalentendu.append(sortIndex(listTheta, 100, 0))
+
+	#listMalentendu = [x for x in listMalentendu if len(x) > 2]
+
+	listMeans = []
+	for truc in listMalentendu:
+		for truc2 in truc:
+			if len(truc2) > 10:
+				listMeans.append(computeMean(truc2))
+			print(len(truc2))
+
+	#print(listMeans)
+
+
+	for mean in listMeans:
+		(norm, x1, y1, x2, y2) = getPoints(mean[0], mean[1])
+		cv2.line(img,(x1,y1),(x2,y2),(0,0,255),2)
 
 	OpenCVTools.showWindow(imageField.name, img)
 	cv2.waitKey(0)
