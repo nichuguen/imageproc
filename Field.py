@@ -7,7 +7,7 @@ class Field:
 		:param listSeasons:  list of seasons
 		"""
 		self._name = name
-		self._listSeasons = deepcopy(listSeasons)
+		self._listSeasons = [season for season in listSeasons]
 		self._result = None
 
 	def __repr__(self):

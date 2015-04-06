@@ -1,5 +1,7 @@
+#*-* coding:utf-8 *-*
 from operator import sub
 import ImageField
+
 
 
 class FieldFactory:
@@ -76,9 +78,9 @@ class FieldFactory:
         mask = "_mask"
         jpg = ".jpg"
         txt = ".txt"
-        mapHeaderSeason = {(season, headerRoot + regionName + season +FieldFactory.DIR_SUFFIX + backslash) for season in listSeasonNames}
+        mapHeaderSeason = {season: (headerRoot + regionName + season +FieldFactory.DIR_SUFFIX + backslash) for season in listSeasonNames}
 
-        mapHeaderSeasonProfile = {(season, headerRoot + regionName +FieldFactory.DIR_PROFILE_INFIX + season +FieldFactory.DIR_SUFFIX + backslash) for season in listSeasonNames}
+        mapHeaderSeasonProfile = {season: (headerRoot + regionName +FieldFactory.DIR_PROFILE_INFIX + season +FieldFactory.DIR_SUFFIX + backslash) for season in listSeasonNames}
         imgColor = None
         imgHeight = None
         listFields = []
@@ -86,15 +88,13 @@ class FieldFactory:
             listSeasons =[]
             for season in listSeasonNames:
                 print (season)
-                header = mapHeaderSeason[season] #+ fileName
+                header = mapHeaderSeason[season]  #+ fileName
                 imgColor = ImageField(field + fileName + during + season, header+ jpg, header + mask + jpg, header + txt )
                 header = mapHeaderSeasonProfile[season] + fileName
                 imgHeight = ImageField(field + fileName +profile + during + season, header+ jpg, header + mask + jpg, header + txt )
                 listSeasons.append(Season(season, int(season[:-4]), imgColor, imgHeight))
             listFields.append(Field(fileName, listSeasons))
         print (listFields)
-
-        print(len(listColorMasksPaths))
 
 if __name__ == "__main__":
     FieldFactory.createFieldList("data", 'denens')

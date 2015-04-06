@@ -11,7 +11,7 @@ def showWindow(title, edges):
 
 def main():
 	# img = cv2.imread(r'data\temp\sudoku.png')
-	img = cv2.imread(r'data\temp\dave.jpg')
+	img = cv2.imread(r'data\denens062014_50\6870221.0.jpg')
 	gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 	showWindow("gray", gray)
 	gray = cv2.medianBlur(gray, 5)
