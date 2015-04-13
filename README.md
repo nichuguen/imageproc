@@ -1,1 +1,1 @@
-"readme" 
+Projet de traitement d'image - Champs===========Pour lancer le projet, il suffit d'exécuter le fichier main.py avec la commande suivante:``` py -2 main.py```Pré-requis-------------* Python 2 * OpenCV pour pythonConseils à l'utilisation------------------------N'hésitez pas à ouvrir main.py et à essayer d'autres images (voir commentaires dans le code)
