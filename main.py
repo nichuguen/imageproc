@@ -1,11 +1,14 @@
+# -*- coding: utf8 -*-
 import cv2
 import numpy as np
 from OpenCVTools import OpenCVTools
 from ImageField import ImageField
+from copy import deepcopy
 
 HOUGH_OFFSET = 6000
 MIN_MERGED_LINES = 3
-THRESHOLD = 0.9
+THRESHOLD_THETA = 0.9
+THRESHOLD_RHO = 100
 CANNY_THRESHOLD = 40
 
 def isSameTheta(listClasses, rt, threshold, index):
@@ -28,13 +31,13 @@ def sortIndex(listRhoTheta, threshold, index):
 	else:
 		raise
 
-def computeMean(truc2):
+def computeMean(lines):
 	t = 0
 	r = 0
-	for rt in truc2:
+	for rt in lines:
 		t += rt[1]
 		r += rt[0]
-	length = len(truc2)
+	length = len(lines)
 	if length > 0:
 		return (r / length, t/length)
 	return (0,0)
@@ -53,24 +56,61 @@ def getPoints(rho, theta):
 	return (norm, x1, y1, x2, y2)
 
 
+def houghLinesFiltered(img, listRhoTheta):
+	'''
+	Le but de cette méthode est de regrouper de manière simple des droites similaires issues d'un HoughLines
+	Pour ce faire, on regroupe les rho et les theta dans des classes et on dessine la droite moyenne de ces dernières.
+	Les classes n'ayant pas suffisament de droite sont ignorées.
+	Les paramètres modifiables sont THRESHOLD_RHO et THRESHOLD_THETA.
+	:param img: image sur laquelle afficher les lignes
+	:param listRhoTheta: liste des rho et des theta issus d'un HoughLines standard
+	:return:
+	'''
+	listRhoTheta.sort(key=lambda x: x[0])
+	sortedTheta = sortIndex(listRhoTheta, THRESHOLD_THETA, 1)
+	listGroupLines = []
+	for listTheta in sortedTheta:
+		listGroupLines.append(sortIndex(listTheta, THRESHOLD_RHO, 0))
+	listMeans = []
+	for groupLine in listGroupLines:
+		for line in groupLine:
+			if len(line) > MIN_MERGED_LINES:
+				listMeans.append(computeMean(line))
+	for mean in listMeans:
+		(norm, x1, y1, x2, y2) = getPoints(mean[0], mean[1])
+		cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 8)
+
+
 def main():
-	#imageField = ImageField("6872195.0", r'data\denens062014_50\6872195.0.jpg', r'data\denens062014_50\6872195.0_mask.jpg', r'data\denens062014_50\6872195.0.txt')
+
+	# Exemples utilisés lors de la présentations
 	imageField = ImageField("6870221.0", r'data\denens062014_50\6870221.0.jpg', r'data\denens062014_50\6870221.0_mask.jpg', r'data\denens062014_50\6870221.0.txt')
+	# imageField = ImageField("6872195.0", r'data\denens062014_50\6872195.0.jpg', r'data\denens062014_50\6872195.0_mask.jpg', r'data\denens062014_50\6872195.0.txt')
 
-	#imageField = ImageField("6872195.0", r'data\denensprof062014_50\6872195.0.jpg', r'data\denensprof062014_50\6872195.0_mask.jpg', r'data\denensprof062014_50\6872195.0.txt')
+	# Même image, autre saison
+	# imageField = ImageField("6870221.0", r'data\denens082014_50\6870221.0.jpg', r'data\denens082014_50\6870221.0_mask.jpg', r'data\denens082014_50\6870221.0.txt')
+	# imageField = ImageField("6870221.0", r'data\denens102014_50\6870221.0.jpg', r'data\denens102014_50\6870221.0_mask.jpg', r'data\denens102014_50\6870221.0.txt')
+
+	# Images en profondeur
+	# imageField = ImageField("6872195.0", r'data\denensprof062014_50\6872195.0.jpg', r'data\denensprof062014_50\6872195.0_mask.jpg', r'data\denensprof062014_50\6872195.0.txt')
 	# imageField = ImageField("6870221.0", r'data\denensprof062014_50\6870221.0.jpg', r'data\denensprof062014_50\6870221.0_mask.jpg', r'data\denensprof062014_50\6870221.0.txt')
-	img = imageField.realImg
 
+	img = imageField.realImg
+	OpenCVTools.showWindow("original", img)
+
+	# NIVEAUX DE GRIS
 	grey = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 	OpenCVTools.showWindow("grey", grey)
 
+	# FLOU GAUSSIEN
 	grey = cv2.GaussianBlur(grey, (9,9), 0)
-	# grey = cv2.bilateralFilter(grey, 4, 120,120)
-
 	OpenCVTools.showWindow("gaussian filter", grey)
+
+	# CANNY
 	edges = cv2.Canny(grey,CANNY_THRESHOLD,3*CANNY_THRESHOLD)
 	OpenCVTools.showWindow("canny", edges)
 
+	# FERMETURE
 	kernel = np.ones((10,10),np.uint8)
 	edges = cv2.dilate(edges, kernel, iterations=3)
 	OpenCVTools.showWindow("dilate", edges)
@@ -79,33 +119,23 @@ def main():
 	edges = cv2.erode(edges, kernel, iterations=2)
 	OpenCVTools.showWindow("erode", edges)
 
+	# CANNY 2
 	edges = cv2.Canny(edges,40,3*40)
 	OpenCVTools.showWindow("canny 2", edges)
 
+	# HOUGH LINES SANS FILTRE
 	lines = cv2.HoughLines(edges,1,np.pi/180,120)
-
+	imgHoughLinesNoFilter = deepcopy(img)
 	listRhoTheta = []
 	for line in lines:
 		for rho,theta in line:
 			listRhoTheta.append((rho, theta))
 			(norm, x1, y1, x2, y2) = getPoints(rho, theta)
+			cv2.line(imgHoughLinesNoFilter,(x1,y1),(x2,y2),(0,0,255),8)
+	OpenCVTools.showWindow("hough lines nofilter", imgHoughLinesNoFilter)
 
-	listRhoTheta.sort(key= lambda x: x[0])
-
-	sortedTheta = sortIndex(listRhoTheta, THRESHOLD, 1)
-	listMalentendu = []
-	for listTheta in sortedTheta:
-		listMalentendu.append(sortIndex(listTheta, 100, 0))
-
-	listMeans = []
-	for truc in listMalentendu:
-		for truc2 in truc:
-			if len(truc2) > MIN_MERGED_LINES:
-				listMeans.append(computeMean(truc2))
-
-	for mean in listMeans:
-		(norm, x1, y1, x2, y2) = getPoints(mean[0], mean[1])
-		cv2.line(img,(x1,y1),(x2,y2),(0,0,255),8)
+	# HOUGH LINES EN NE GARDANT QUE LES MEILLEURES LIGNES
+	houghLinesFiltered(img, listRhoTheta)
 
 	OpenCVTools.showWindow(imageField.name, img)
 	cv2.waitKey(0)
